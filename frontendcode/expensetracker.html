@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+    <style>
+        #submit{
+            margin-top: 10px;
+        }
+    </style>
+
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <div class="cointainer">
+        <!--here we are creating form of 6 column width horizontally,we are providing space(offset) to that column by 3 column width from both left and right side(basically keeping space for created column from both right,left side)-->
+        <div class="col-lg-6 col-lg-offset-3">
+            <div id="ui">
+                <h1 class="text-center"><b>Expense Tracker App</b></h1>
+                <form onsubmit="saveToLocalStorage(event)" class="form-group"> <!-- used for optimum spacing -->
+                    <div class="row">
+                        <label>Choose Expense Amount:</label>
+                        <input type="text" id="expense" name="expense" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <label>Choose Description:</label>
+                        <input type="text" id="Description" name="Description" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <label>Choose a category:</label>
+                        <select id="category" name="category" class="form-control" required>
+                            <option>Food</option>
+                            <option>movie</option>
+                            <option>fuel</option>
+                            <option>room</option>
+                        </select>
+                        <input type="submit" name="submit" value="submit" id="submit"
+                            class="btn btn-primary btn-block btn-lg">
+                    </div>
+                </form>
+                <!--<p>Total Expenses:<span id="totalExpenses">Rs 0</span></p> -->
+            </div>
+        </div>
+        <!--output text width is 6 columns,it needs to be displayed after 3 spacing from left,rigth side-->
+        <!--in order to display the output values under form we need to wrap ul id inside id called outputContainer-->
+        <!--its styling we are basically doing here-->
+        <div class="col-lg-6 col-lg-offset-3">
+            <div id="outputContainer">
+                <ul id="listOfItems"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- how do i make network call from one computer to another means i have to use axios. Axios is the code written by someone and we are just downloading that code and with the help of library called axios we are using that code. Also axios helps to communicate between front end to the server,front end run on your com[puter and server runs on cloud -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
+    <script>
+        //let totalExpense = 0;
+
+        function saveToLocalStorage(event) {
+            event.preventDefault(); //page link should not change every u refresh the page
+            const expens = event.target.expense.value;
+            //This line retrieves the value entered in the input field with the name 'expense' from the form.
+            //It uses event.target to access the form element and .value to retrieve the entered value.
+            const descript = event.target.Description.value;
+            const categ = event.target.category.value;
+
+            const obj = {
+                expens,
+                descript,
+                categ
+            }
+            //post request helps to connect front to backend
+            //In order make website dynamic in nature we have to use backend. crudcrud website which provides backend api for free
+            //post requires object
+            //axios.post it is an asynchronous event it executes after some delay
+            axios.post("http://localhost:3000/add-expense", obj)
+                .then((response) => {
+                    showUserOnScreen(response.data.expensedata);
+                    console.log(response);
+                    event.target.reset();
+                })
+                .catch((err) => {
+                    document.body.innerHTML = document.body.innerHTML + '<h4> Something Went Wrong </h4>'
+                    console.log(err);
+                })
+            //localStorage.setItem(obj.descript,JSON.stringify(obj)) //obj.descript is keys and stringyfy of object is stored here
+            //showUserOnScreen(obj);
+            //totalExpense += expens //obj expens
+            //document.getElementById('totalExpenses').textContent = totalExpense +' Rs';
+        }
+
+        //showing saved userdetails on console where inside data you can see saved data eventhough you have refreshed the page,data wont be lost
+        //get does not requires object
+        //axios.get it is an asynchronous event it executes after some delay
+        window.addEventListener("DOMContentLoaded", () => {
+            axios.get("http://localhost:3000/get-expense")
+                .then((response) => {
+                    console.log(response);
+                    console.log('length of the response from getexpense method', response.data.getexpense.length);
+                    console.log('response from getexpense method', response.data.getexpense);
+                    for (var i = 0; i < response.data.getexpense.length; i++) { //in order to show the saved data on screen eventhough u have refreshed the page data wont be deleted from the screen.
+                        showUserOnScreen(response.data.getexpense[i]);
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                })
+        })
+        //onscreen data is showing when you hit the submit button
+        function showUserOnScreen(obj) {
+            const parentEle = document.getElementById('listOfItems');
+            const childEle = document.createElement('li'); //creating li tag
+            childEle.textContent = obj.expens + '-' + obj.descript + '-' + obj.categ + '-';
+            parentEle.appendChild(childEle) //in order show on screen
+
+            const delButton = document.createElement('input');
+            delButton.type = "button";
+            delButton.value = "Delete";
+            childEle.append(delButton); //in order show del button on screen
+
+            //when u click the del button parent ele,li tag also deleted from screen as well as local storage
+            delButton.onclick = () => {
+                axios.delete(`http://localhost:3000/delete-expense/${obj.id}`)
+                    .then((response) => {
+                        parentEle.removeChild(childEle)
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    })
+                //localStorage.removeItem(obj.descript);
+                //parentEle.removeChild(childEle)
+                //totalExpense -= obj.expens;
+                //document.getElementById('totalExpenses').textContent = totalExpense +' Rs';
+            }
+
+            //creating edit button
+            const editButton = document.createElement('input');
+            editButton.type = "button";
+            editButton.value = "Edit";
+            childEle.append(editButton); //in order to show edit button on screen
+
+            //when you click the edit button u are able to edit the changes
+            editButton.onclick = () => {
+                axios.delete(`http://localhost:3000/delete-expense/${obj.id}`)
+                    .then((response) => {
+                        parentEle.removeChild(childEle)
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    })
+                //localStorage.removeItem(obj.descript);
+                //parentEle.removeChild(childEle);
+                document.getElementById('expense').value = obj.expens;
+                document.getElementById('Description').value = obj.descript;
+                document.getElementById('category').value = obj.categ;  //go through this code.
+
+            }
+        }
+    </script>
+</body>
+
+</html>
